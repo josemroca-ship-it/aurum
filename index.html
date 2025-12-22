@@ -198,14 +198,36 @@
         };
 
         // --- Utilidades ---
-        const formatCurrency = (amount) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
-        const formatCurrencyDetailed = (amount) => new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(amount);
+        // USO DE 'de-DE' PARA FORZAR PUNTO DE MILES
+        const formatCurrency = (amount) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(amount);
+        const formatCurrencyDetailed = (amount) => new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount);
         
         const formatDateShort = (dateString) => {
              if (!dateString) return '';
              const d = new Date(dateString);
              return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear().toString().substr(-2)}`;
         }
+
+        // --- Detector de Banderas ---
+        const getCountryFlag = (countryName) => {
+            if (!countryName) return "🌍"; // Default global
+            const lower = countryName.toLowerCase().trim();
+            
+            if (lower.includes("sudáfrica") || lower.includes("sudafrica") || lower.includes("africa")) return "🇿🇦";
+            if (lower.includes("usa") || lower.includes("estados unidos") || lower.includes("eeuu") || lower.includes("eagle")) return "🇺🇸";
+            if (lower.includes("canadá") || lower.includes("canada") || lower.includes("maple")) return "🇨🇦";
+            if (lower.includes("china") || lower.includes("panda")) return "🇨🇳";
+            if (lower.includes("australia") || lower.includes("canguro") || lower.includes("koala")) return "🇦🇺";
+            if (lower.includes("austria") || lower.includes("filarmónica") || lower.includes("philharmonic")) return "🇦🇹";
+            if (lower.includes("uk") || lower.includes("reino unido") || lower.includes("inglaterra") || lower.includes("britannia")) return "🇬🇧";
+            if (lower.includes("méxico") || lower.includes("mexico") || lower.includes("libertad")) return "🇲🇽";
+            if (lower.includes("españa") || lower.includes("spain")) return "🇪🇸";
+            if (lower.includes("suiza") || lower.includes("switzerland")) return "🇨🇭";
+            if (lower.includes("alemania") || lower.includes("germany")) return "🇩🇪";
+            if (lower.includes("francia") || lower.includes("france")) return "🇫🇷";
+            
+            return "🌍"; 
+        };
 
         // Función para redimensionar y comprimir imágenes antes de guardarlas
         const compressImage = (file) => {
@@ -519,6 +541,7 @@
                                             <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
                                                 <th className="px-4 py-3 font-semibold w-16">Foto</th>
                                                 <th className="px-4 py-3 font-semibold">Detalle Pieza</th>
+                                                <th className="px-4 py-3 font-semibold w-12 text-center">País</th>
                                                 <th className="px-4 py-3 font-semibold text-right hidden sm:table-cell">Compra</th>
                                                 <th className="px-4 py-3 font-semibold text-right">Valor</th>
                                                 <th className="px-4 py-3 font-semibold text-right">P/G</th>
@@ -556,10 +579,12 @@
                                                                 <span>·</span>
                                                                 <span>{item.weight} {item.unit}</span>
                                                                 {item.type && <><span>·</span><span>{item.type}</span></>}
-                                                                {item.country && <><span>·</span><span>{item.country}</span></>}
                                                                 <span>·</span>
                                                                 <span>{formatDateShort(item.purchaseDate)}</span>
                                                             </div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-center text-xl">
+                                                            {getCountryFlag(item.country)}
                                                         </td>
                                                         <td className="px-4 py-3 text-right text-slate-500 font-mono hidden sm:table-cell">{formatCurrencyDetailed(item.purchasePrice)}</td>
                                                         <td className="px-4 py-3 text-right font-medium text-slate-900 font-mono">{formatCurrencyDetailed(currentVal)}</td>
