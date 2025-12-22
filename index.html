@@ -8,7 +8,7 @@
     <!-- 1. Estilos: Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- 2. Motor: React y Babel (para entender el código) -->
+    <!-- 2. Motor: React y Babel -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -22,7 +22,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- Iconos SVG (Inline para no depender de librerías externas) ---
+        // --- Iconos SVG ---
         const Icon = ({ path, size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
                 {path}
@@ -37,6 +37,7 @@
             PieChart: (props) => <Icon {...props} path={<><path d="M21.21 15.89A10 10 0 1 1 8 2.83" /><path d="M22 12A10 10 0 0 0 12 2v10z" /></>} />,
             Plus: (props) => <Icon {...props} path={<><path d="M5 12h14" /><path d="M12 5v14" /></>} />,
             Trash2: (props) => <Icon {...props} path={<><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /><line x1="10" x2="10" y1="11" y2="17" /><line x1="14" x2="14" y1="11" y2="17" /></>} />,
+            Edit: (props) => <Icon {...props} path={<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></>} />,
             RefreshCw: (props) => <Icon {...props} path={<><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M8 16H3v5" /></>} />,
             AlertCircle: (props) => <Icon {...props} path={<><circle cx="12" cy="12" r="10" /><line x1="12" x2="12" y1="8" y2="12" /><line x1="12" x2="12.01" y1="16" y2="16" /></>} />,
             X: (props) => <Icon {...props} path={<><path d="M18 6 6 18" /><path d="m6 6 12 12" /></>} />
@@ -94,12 +95,12 @@
             if (!isOpen) return null;
             return (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm p-4 animate-[fadeIn_0.2s_ease-out]">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-[zoomIn_0.2s_ease-out]">
-                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-[zoomIn_0.2s_ease-out] flex flex-col max-h-[90vh]">
+                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
                             <h3 className="text-lg font-bold text-slate-800">{title}</h3>
                             <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><Icons.X size={20}/></button>
                         </div>
-                        <div className="p-6">
+                        <div className="p-6 overflow-y-auto">
                             {children}
                         </div>
                     </div>
@@ -113,6 +114,11 @@
             if (!dateString) return '';
             return new Date(dateString).toLocaleDateString('es-ES', { year: 'numeric', month: 'short', day: 'numeric' });
         };
+        const formatDateShort = (dateString) => {
+             if (!dateString) return '';
+             const d = new Date(dateString);
+             return `${d.getDate()}/${d.getMonth()+1}/${d.getFullYear().toString().substr(-2)}`;
+        }
 
         // --- App Principal ---
         function App() {
@@ -129,12 +135,24 @@
 
             const [isLoadingPrices, setIsLoadingPrices] = useState(false);
             const [priceError, setPriceError] = useState(null);
+            
+            // Modal States
             const [isAddModalOpen, setIsAddModalOpen] = useState(false);
             const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+            const [editingId, setEditingId] = useState(null); // ID del item que estamos editando
             
-            const [newItem, setNewItem] = useState({
-                name: '', metal: 'gold', weight: '', unit: 'oz', purchasePrice: '', purchaseDate: new Date().toISOString().split('T')[0]
-            });
+            const initialItemState = {
+                name: '', 
+                metal: 'gold', 
+                weight: '', 
+                unit: 'oz', 
+                purchasePrice: '', 
+                purchaseDate: new Date().toISOString().split('T')[0],
+                country: '',
+                type: 'Moneda' // Moneda, Lingote, Joyería, Otro
+            };
+
+            const [newItem, setNewItem] = useState(initialItemState);
 
             useEffect(() => localStorage.setItem('spotPrices', JSON.stringify(spotPrices)), [spotPrices]);
             useEffect(() => localStorage.setItem('portfolio', JSON.stringify(portfolio)), [portfolio]);
@@ -168,7 +186,7 @@
                     const weightInOz = item.unit === 'g' ? item.weight * 0.0321507 : item.weight;
                     const spotPrice = item.metal === 'gold' ? spotPrices.gold : spotPrices.silver;
                     const itemVal = weightInOz * spotPrice;
-                    totalInvested += parseFloat(item.purchasePrice);
+                    totalInvested += parseFloat(item.purchasePrice || 0);
                     currentValue += itemVal;
                     if (item.metal === 'gold') goldValue += itemVal; else silverValue += itemVal;
                 });
@@ -177,14 +195,55 @@
                 return { totalInvested, currentValue, profitLoss, roi, goldValue, silverValue };
             }, [portfolio, spotPrices]);
 
-            const handleAddItem = (e) => {
+            // --- Lógica de Guardado (Crear y Editar) ---
+            const handleSaveItem = (e) => {
                 e.preventDefault();
                 if (!newItem.name || !newItem.weight || !newItem.purchasePrice) return;
-                const item = { id: crypto.randomUUID(), ...newItem, weight: parseFloat(newItem.weight), purchasePrice: parseFloat(newItem.purchasePrice) };
-                setPortfolio([item, ...portfolio]);
-                setNewItem({ name: '', metal: 'gold', weight: '', unit: 'oz', purchasePrice: '', purchaseDate: new Date().toISOString().split('T')[0] });
-                setIsAddModalOpen(false);
+
+                if (editingId) {
+                    // MODO EDICIÓN: Actualizar existente
+                    setPortfolio(portfolio.map(item => 
+                        item.id === editingId 
+                            ? { ...newItem, id: editingId, weight: parseFloat(newItem.weight), purchasePrice: parseFloat(newItem.purchasePrice) } 
+                            : item
+                    ));
+                } else {
+                    // MODO CREACIÓN: Añadir nuevo
+                    const item = { 
+                        id: crypto.randomUUID(), 
+                        ...newItem, 
+                        weight: parseFloat(newItem.weight), 
+                        purchasePrice: parseFloat(newItem.purchasePrice) 
+                    };
+                    setPortfolio([item, ...portfolio]);
+                }
+                
+                closeModal();
             };
+
+            const openAddModal = () => {
+                setEditingId(null);
+                setNewItem(initialItemState);
+                setIsAddModalOpen(true);
+            };
+
+            const openEditModal = (item) => {
+                setEditingId(item.id);
+                setNewItem({
+                    ...item,
+                    // Asegurarnos que los campos opcionales tengan string vacío si no existen
+                    country: item.country || '',
+                    type: item.type || 'Moneda',
+                    purchaseDate: item.purchaseDate || new Date().toISOString().split('T')[0]
+                });
+                setIsAddModalOpen(true);
+            };
+
+            const closeModal = () => {
+                setIsAddModalOpen(false);
+                setEditingId(null);
+                setNewItem(initialItemState);
+            }
 
             const handleDeleteItem = (id) => {
                 if (confirm('¿Borrar moneda?')) setPortfolio(portfolio.filter(item => item.id !== id));
@@ -211,12 +270,12 @@
                                 <h1 className="text-xl font-bold tracking-tight">Aurum<span className="text-slate-400">&</span>Argentum</h1>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <div onClick={() => setIsPriceModalOpen(true)} className="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-slate-700 cursor-pointer">
+                                <div onClick={() => setIsPriceModalOpen(true)} className="flex items-center space-x-2 bg-slate-800 px-3 py-1.5 rounded-full text-xs sm:text-sm border border-slate-700 cursor-pointer hover:bg-slate-700 transition">
                                     <span className="text-amber-400 font-bold">Au: {formatCurrency(spotPrices.gold)}</span>
                                     <span className="text-slate-600">|</span>
                                     <span className="text-slate-300 font-bold">Ag: {formatCurrency(spotPrices.silver)}</span>
                                 </div>
-                                <button onClick={fetchLivePrices} disabled={isLoadingPrices} className={`p-2 rounded-full bg-slate-800 border border-slate-700 text-slate-400 ${isLoadingPrices ? 'animate-spin text-amber-500' : ''}`}>
+                                <button onClick={fetchLivePrices} disabled={isLoadingPrices} className={`p-2 rounded-full bg-slate-800 border border-slate-700 text-slate-400 ${isLoadingPrices ? 'animate-spin text-amber-500' : 'hover:text-white'}`}>
                                     <Icons.RefreshCw size={16} />
                                 </button>
                             </div>
@@ -241,7 +300,7 @@
                         {/* Action Header */}
                         <div className="flex justify-between items-center pt-2">
                             <h2 className="text-xl font-bold text-slate-800 flex items-center"><Icons.PieChart className="mr-2 text-slate-400" size={24}/> Mi Colección</h2>
-                            <Button onClick={() => setIsAddModalOpen(true)}><Icons.Plus size={18} className="mr-2" /> Añadir</Button>
+                            <Button onClick={openAddModal}><Icons.Plus size={18} className="mr-2" /> Añadir</Button>
                         </div>
 
                         {/* Table */}
@@ -250,19 +309,19 @@
                                 <div className="text-center py-12 px-4">
                                     <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"><Icons.Coins size={32} className="text-slate-300" /></div>
                                     <h3 className="text-lg font-medium text-slate-900">Colección vacía</h3>
-                                    <p className="text-slate-500 text-sm mt-1 mb-6">Añade tu primera moneda.</p>
-                                    <Button onClick={() => setIsAddModalOpen(true)} variant="secondary">Comenzar</Button>
+                                    <p className="text-slate-500 text-sm mt-1 mb-6">Añade tu primera moneda con los nuevos detalles (País, Tipo, etc).</p>
+                                    <Button onClick={openAddModal} variant="secondary">Comenzar</Button>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left border-collapse">
                                         <thead>
                                             <tr className="bg-slate-50 border-b border-slate-200 text-xs uppercase text-slate-500">
-                                                <th className="px-4 py-3 font-semibold">Pieza</th>
+                                                <th className="px-4 py-3 font-semibold">Detalle Pieza</th>
                                                 <th className="px-4 py-3 font-semibold text-right">Compra</th>
                                                 <th className="px-4 py-3 font-semibold text-right">Valor</th>
                                                 <th className="px-4 py-3 font-semibold text-right">P/G</th>
-                                                <th className="px-4 py-3"></th>
+                                                <th className="px-4 py-3 text-center">Acciones</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-100 text-sm">
@@ -274,20 +333,35 @@
                                                 const percent = item.purchasePrice > 0 ? ((profit / item.purchasePrice) * 100).toFixed(1) : '0.0';
 
                                                 return (
-                                                    <tr key={item.id} className="hover:bg-slate-50">
+                                                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
                                                         <td className="px-4 py-3">
                                                             <div className="font-medium text-slate-900">{item.name}</div>
-                                                            <div className="text-xs text-slate-500">{item.weight} {item.unit} · {item.metal === 'gold' ? 'Au' : 'Ag'}</div>
+                                                            <div className="text-xs text-slate-500 flex flex-wrap gap-1 mt-0.5">
+                                                                <span className="font-semibold">{item.metal === 'gold' ? 'Oro' : 'Plata'}</span>
+                                                                <span>·</span>
+                                                                <span>{item.weight} {item.unit}</span>
+                                                                {item.type && <><span>·</span><span>{item.type}</span></>}
+                                                                {item.country && <><span>·</span><span>{item.country}</span></>}
+                                                                <span>·</span>
+                                                                <span>{formatDateShort(item.purchaseDate)}</span>
+                                                            </div>
                                                         </td>
-                                                        <td className="px-4 py-3 text-right text-slate-500">{formatCurrency(item.purchasePrice)}</td>
-                                                        <td className="px-4 py-3 text-right font-medium text-slate-900">{formatCurrency(currentVal)}</td>
+                                                        <td className="px-4 py-3 text-right text-slate-500 font-mono">{formatCurrency(item.purchasePrice)}</td>
+                                                        <td className="px-4 py-3 text-right font-medium text-slate-900 font-mono">{formatCurrency(currentVal)}</td>
                                                         <td className="px-4 py-3 text-right">
                                                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${profit >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
                                                                 {profit >= 0 ? '+' : ''}{percent}%
                                                             </span>
                                                         </td>
                                                         <td className="px-4 py-3 text-center">
-                                                            <button onClick={() => handleDeleteItem(item.id)} className="text-slate-300 hover:text-rose-500"><Icons.Trash2 size={16} /></button>
+                                                            <div className="flex items-center justify-center space-x-1">
+                                                                <button onClick={() => openEditModal(item)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition" title="Editar">
+                                                                    <Icons.Edit size={16} />
+                                                                </button>
+                                                                <button onClick={() => handleDeleteItem(item.id)} className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded transition" title="Borrar">
+                                                                    <Icons.Trash2 size={16} />
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 );
@@ -300,38 +374,72 @@
                     </main>
 
                     {/* Modals */}
-                    <Modal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} title="Nueva Pieza">
-                        <form onSubmit={handleAddItem} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre</label>
-                                <input required type="text" placeholder="Ej. Krugerrand..." className="w-full px-3 py-2 border rounded-lg outline-none focus:border-slate-900" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+                    {/* Modal Añadir/Editar */}
+                    <Modal isOpen={isAddModalOpen} onClose={closeModal} title={editingId ? "Editar Pieza" : "Nueva Pieza"}>
+                        <form onSubmit={handleSaveItem} className="space-y-4">
+                            {/* Nombre y Tipo */}
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Nombre / Descripción</label>
+                                    <input required type="text" placeholder="Ej. Krugerrand" className="w-full px-3 py-2 border rounded-lg outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Tipo</label>
+                                    <select className="w-full px-2 py-2 border rounded-lg outline-none bg-white focus:border-slate-900" value={newItem.type} onChange={e => setNewItem({...newItem, type: e.target.value})}>
+                                        <option value="Moneda">Moneda</option>
+                                        <option value="Lingote">Lingote</option>
+                                        <option value="Joyería">Joyería</option>
+                                        <option value="Otro">Otro</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button type="button" onClick={() => setNewItem({...newItem, metal: 'gold'})} className={`py-2 px-3 rounded-lg border text-sm font-medium ${newItem.metal === 'gold' ? 'bg-amber-100 border-amber-400 text-amber-800' : 'text-slate-600'}`}>Oro</button>
-                                <button type="button" onClick={() => setNewItem({...newItem, metal: 'silver'})} className={`py-2 px-3 rounded-lg border text-sm font-medium ${newItem.metal === 'silver' ? 'bg-slate-200 border-slate-400 text-slate-800' : 'text-slate-600'}`}>Plata</button>
-                            </div>
+
+                            {/* Metal y País */}
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Peso</label>
-                                    <div className="flex">
-                                        <input required type="number" step="0.01" className="w-full px-3 py-2 border rounded-l-lg outline-none focus:border-slate-900" value={newItem.weight} onChange={e => setNewItem({...newItem, weight: e.target.value})} />
-                                        <select className="bg-slate-100 border border-l-0 rounded-r-lg px-2 text-sm" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})}><option value="oz">oz</option><option value="g">g</option></select>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Metal</label>
+                                    <div className="flex space-x-2">
+                                        <button type="button" onClick={() => setNewItem({...newItem, metal: 'gold'})} className={`flex-1 py-2 px-2 rounded-lg border text-sm font-medium transition ${newItem.metal === 'gold' ? 'bg-amber-100 border-amber-400 text-amber-800' : 'text-slate-600 hover:bg-slate-50'}`}>Oro</button>
+                                        <button type="button" onClick={() => setNewItem({...newItem, metal: 'silver'})} className={`flex-1 py-2 px-2 rounded-lg border text-sm font-medium transition ${newItem.metal === 'silver' ? 'bg-slate-200 border-slate-400 text-slate-800' : 'text-slate-600 hover:bg-slate-50'}`}>Plata</button>
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-1">Coste (€)</label>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">País Origen</label>
+                                    <input type="text" placeholder="Ej. Sudáfrica" className="w-full px-3 py-2 border rounded-lg outline-none focus:border-slate-900" value={newItem.country} onChange={e => setNewItem({...newItem, country: e.target.value})} />
+                                </div>
+                            </div>
+
+                            {/* Peso */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Peso</label>
+                                <div className="flex">
+                                    <input required type="number" step="0.01" className="w-full px-3 py-2 border rounded-l-lg outline-none focus:border-slate-900" value={newItem.weight} onChange={e => setNewItem({...newItem, weight: e.target.value})} />
+                                    <select className="bg-slate-100 border border-l-0 rounded-r-lg px-2 text-sm outline-none" value={newItem.unit} onChange={e => setNewItem({...newItem, unit: e.target.value})}><option value="oz">oz</option><option value="g">g</option></select>
+                                </div>
+                            </div>
+
+                            {/* Datos Compra */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Fecha Compra</label>
+                                    <input required type="date" className="w-full px-3 py-2 border rounded-lg outline-none focus:border-slate-900" value={newItem.purchaseDate} onChange={e => setNewItem({...newItem, purchaseDate: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Coste Total (€)</label>
                                     <input required type="number" step="0.01" className="w-full px-3 py-2 border rounded-lg outline-none focus:border-slate-900" value={newItem.purchasePrice} onChange={e => setNewItem({...newItem, purchasePrice: e.target.value})} />
                                 </div>
                             </div>
-                            <Button type="submit" className="w-full mt-2">Guardar</Button>
+
+                            <Button type="submit" className="w-full mt-4">{editingId ? "Actualizar Pieza" : "Guardar en Colección"}</Button>
                         </form>
                     </Modal>
 
+                    {/* Modal Precio Spot */}
                     <Modal isOpen={isPriceModalOpen} onClose={() => setIsPriceModalOpen(false)} title="Ajuste Manual (€/oz)">
                         <form onSubmit={handleUpdatePrices} className="space-y-4">
                             <div><label className="text-sm font-medium">Oro</label><input name="goldPrice" type="number" step="0.01" defaultValue={spotPrices.gold} className="w-full px-3 py-2 border rounded-lg font-mono" /></div>
                             <div><label className="text-sm font-medium">Plata</label><input name="silverPrice" type="number" step="0.01" defaultValue={spotPrices.silver} className="w-full px-3 py-2 border rounded-lg font-mono" /></div>
-                            <Button type="submit" className="w-full mt-2">Actualizar</Button>
+                            <Button type="submit" className="w-full mt-2">Actualizar Precios</Button>
                         </form>
                     </Modal>
                 </div>
